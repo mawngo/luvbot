@@ -1,0 +1,50 @@
+version: "2"
+run:
+  concurrency: 4
+  timeout: 2m
+  issues-exit-code: 1
+output:
+  show-stats: false
+
+linters:
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+  enable:
+    - asasalint
+    - asciicheck
+    - bodyclose
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - gochecknoinits
+    - gocritic
+    - godot
+    - govet
+    - ineffassign
+    - loggercheck
+    - mirror
+    - modernize
+    - musttag
+    - prealloc
+    - reassign
+    - revive
+    - staticcheck
+    - unconvert
+    - unused
+    - usestdlibvars
+    - whitespace
+  settings:
+    revive:
+      enable-default-rules: true
+      rules:
+        - name: var-naming
+          arguments:
+            - [ ]
+            - [ ]
+            - - skip-package-name-checks: true
