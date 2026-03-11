@@ -43,6 +43,7 @@ func NewCLI() *CLI {
 		MaxScrollPosts:    10_000,
 		MaxLikes:          1000,
 		MaxContinuedLikes: 30,
+		FistLoadTimeout:   30 * time.Second,
 	}
 
 	command := cobra.Command{
@@ -50,12 +51,12 @@ func NewCLI() *CLI {
 		Short: "Automatically liking Instagram posts",
 		Args:  cobra.NoArgs,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
-			debug, err := cmd.PersistentFlags().GetBool("debug")
-			if err != nil {
-				return err
-			}
-			if debug {
+			if lo.Must(cmd.PersistentFlags().GetBool("debug")) {
 				level.Set(slog.LevelDebug)
+			}
+			if lo.Must(cmd.PersistentFlags().GetBool("login")) {
+				// Allow longer wait time so that user can log in.
+				flags.FistLoadTimeout = 10 * time.Minute
 			}
 			return nil
 		},
@@ -67,6 +68,7 @@ func NewCLI() *CLI {
 				Headless(flags.Headless)
 			l.Set("disable-blink-features", "AutomationControlled")
 			l.Set("disable-features", "CreateDesktopShortcut")
+			l.Set("window-size", "1600,900")
 			u := l.MustLaunch()
 			defer l.Kill()
 
@@ -78,13 +80,14 @@ func NewCLI() *CLI {
 			defer p.Close()
 			defer func() {
 				if r := recover(); r != nil {
-					p.MustScreenshot(filepath.Join("errors", time.Now().Format("2006-01-02-150405_panic.png")))
+					screenshot := filepath.Join("errors", time.Now().Format("2006-01-02-150405_panic.png"))
+					p.MustScreenshot(screenshot)
+					slog.Error("Error", slog.Any("err", r), slog.String("screenshot", screenshot))
 				}
 			}()
-			p.MustWindowMaximize()
 			p.MustNavigate("https://www.instagram.com/")
 			slog.Info("Waiting for Instagram page to load...")
-			p.Timeout(5 * time.Second).MustElement("article:not([data-index]) div > div:last-child svg[aria-label$='Save']")
+			p.Timeout(flags.FistLoadTimeout).MustElement("article:not([data-index]) div > div:last-child svg[aria-label$='Save']")
 
 			likedCnt := 0
 			alreadyLikedCnt := 0
@@ -178,6 +181,7 @@ func NewCLI() *CLI {
 
 	command.PersistentFlags().Bool("debug", false, "Enable debug mode")
 	command.PersistentFlags().String("userdir", "chrome-user-data-test", "Enable debug mode")
+	command.PersistentFlags().Bool("login", false, "Enable login setup mode")
 	return &CLI{&command}
 }
 
@@ -196,6 +200,7 @@ type botFlags struct {
 	MaxScrollPosts    int
 	MaxLikes          int
 	MaxContinuedLikes int
+	FistLoadTimeout   time.Duration
 }
 
 type PostMetadata struct {
