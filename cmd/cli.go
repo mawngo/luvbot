@@ -58,6 +58,10 @@ func NewCLI() *CLI {
 				// Allow longer wait time so that user can log in.
 				flags.FistLoadTimeout = 10 * time.Minute
 			}
+			if lo.Must(cmd.PersistentFlags().GetBool("xvfb")) {
+				flags.XVFB = true
+				flags.Headless = false
+			}
 			return nil
 		},
 		Run: func(cmd *cobra.Command, _ []string) {
@@ -66,6 +70,9 @@ func NewCLI() *CLI {
 			l = l.UserDataDir(filepath.Join("profiles", lo.Must(cmd.PersistentFlags().GetString("userdir")))).
 				Leakless(flags.Leakless).
 				Headless(flags.Headless)
+			if flags.XVFB {
+				l = l.XVFB("-a")
+			}
 			l.Set("disable-blink-features", "AutomationControlled")
 			l.Set("disable-features", "CreateDesktopShortcut")
 			l.Set("window-size", "1600,900")
@@ -182,6 +189,7 @@ func NewCLI() *CLI {
 	command.PersistentFlags().Bool("debug", false, "Enable debug mode")
 	command.PersistentFlags().String("userdir", "chrome-user-data-test", "Enable debug mode")
 	command.PersistentFlags().Bool("login", false, "Enable login setup mode")
+	command.PersistentFlags().Bool("xvfb", false, "Enable login xvfb mode")
 	return &CLI{&command}
 }
 
@@ -196,6 +204,7 @@ type botFlags struct {
 	UserMode       bool
 	Leakless       bool
 	ExtendedScroll bool
+	XVFB           bool
 
 	MaxScrollPosts    int
 	MaxLikes          int
