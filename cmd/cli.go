@@ -199,11 +199,12 @@ type botFlags struct {
 }
 
 type PostMetadata struct {
-	Username string
-	Time     time.Time
-	Followed bool
-	Liked    bool
-	LikeBtn  *rod.Element
+	Username       string
+	IsMultipleUser bool
+	Time           time.Time
+	Followed       bool
+	Liked          bool
+	LikeBtn        *rod.Element
 }
 
 func extractPostMetadata(article *rod.Element) (meta PostMetadata, err error) {
@@ -212,8 +213,10 @@ func extractPostMetadata(article *rod.Element) (meta PostMetadata, err error) {
 		return PostMetadata{}, errors.New("header group not found")
 	}
 
-	if unameEl, err := headerEl.Element("span > div > a[href^='/'] > div span"); err == nil {
-		meta.Username, err = unameEl.Text()
+	unameEls := headerEl.MustElements("span > div > a[href^='/'] span, span > a[href='#'] span")
+	meta.IsMultipleUser = len(unameEls) > 1
+	if !unameEls.Empty() {
+		meta.Username, err = unameEls.First().Text()
 		if err != nil {
 			return PostMetadata{}, errors.New("cannot extract username text")
 		}
@@ -235,8 +238,10 @@ func extractPostMetadata(article *rod.Element) (meta PostMetadata, err error) {
 		return PostMetadata{}, errors.New("post time element not found")
 	}
 
-	if _, err := headerEl.ElementX("div//div[text()='Follow']"); err != nil {
-		meta.Followed = true
+	if !meta.IsMultipleUser {
+		if _, err := headerEl.ElementX("div//div[text()='Follow']"); err != nil {
+			meta.Followed = true
+		}
 	}
 
 	if meta.LikeBtn, err = article.Element("div > div:last-child section svg[aria-label$='ike']"); err == nil {
