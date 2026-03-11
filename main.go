@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
+	"github.com/mawngo/go-try/v2"
 	"math/rand"
 	"path/filepath"
 	"time"
 )
 
-const MaxScrollPosts = 100_000
+const MaxScrollPosts = 10_000
 const MaxLikes = 1000
 const MaxContinuedLikes = 20
+
+var RetryOptions = try.NewOptions(try.WithExponentialBackoff(2*time.Second, 10*time.Second), try.WithAttempts(5))
 
 func main() {
 	l := launcher.
@@ -33,7 +36,7 @@ func main() {
 	defer p.Close()
 
 	p.MustNavigate("https://www.instagram.com/")
-	p.MustElement("article:not([id]) div > div:last-child svg[aria-label$='Save']")
+	p.MustElement("article:not([data-index]) div > div:last-child svg[aria-label$='Save']")
 
 	likedCnt := 0
 	alreadyLikedCnt := 0
@@ -41,16 +44,16 @@ func main() {
 	article := p.MustElement("article:not([data-index])")
 	for i := range MaxScrollPosts {
 		if i > 0 {
-			// Scrolling.
+			// Scroll to the next article.
+			time.Sleep(time.Second*2 + time.Duration(rand.Intn(500))*time.Millisecond)
 			var err error
-			article, err = article.Next()
+			article, err = try.GetWithOptions(article.Next, RetryOptions)
 			if err != nil {
 				fmt.Printf("Error scroll next article: %s\n", err.Error())
 				break
 			}
 		}
 		article.MustScrollIntoView()
-		time.Sleep(time.Second*2 + time.Duration(rand.Intn(500))*time.Millisecond)
 		article.MustEval(fmt.Sprintf(`() => this.setAttribute('data-index', '%d')`, i))
 		if _, err := article.Element("div"); err != nil {
 			// Some articles are just an empty element.
@@ -65,6 +68,10 @@ func main() {
 			fmt.Println("Stopped. You're all caught up")
 			break
 		}
+		if article.Object.Description != "article" {
+			// Not an article.
+			continue
+		}
 		// Wait for the article to be fully loaded.
 		p.MustElement(fmt.Sprintf("article[data-index='%d'] div > div:last-child svg[aria-label$='Save']", i))
 
@@ -73,7 +80,7 @@ func main() {
 			fmt.Println("Error: " + err.Error())
 			break
 		}
-
+		// Log the metadata.
 		fmt.Printf("%d. @%s - %s", i+1, meta.Username, meta.Time.Format("2006-01-02 15:05"))
 		if meta.Liked {
 			fmt.Print(" [Liked]")
@@ -83,6 +90,7 @@ func main() {
 		}
 		fmt.Println()
 
+		// Handling like and limit.
 		if meta.Followed {
 			if meta.Liked {
 				alreadyLikedCnt++
@@ -156,8 +164,8 @@ func extractPostMetadata(article *rod.Element) (meta PostMetadata, err error) {
 	} else {
 		return PostMetadata{}, errors.New("like icon element not found")
 	}
-	// Click to remove the popup caused by hover over the username.
+	// Hover post content to remove the popup caused by hover over the username.
 	// IDK why it happened.
-	headerEl.MustClick()
+	article.MustElement("div > div:nth-child(2)").MustHover()
 	return meta, nil
 }
