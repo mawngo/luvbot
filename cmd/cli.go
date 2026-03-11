@@ -16,10 +16,6 @@ import (
 	"time"
 )
 
-const maxScrollPosts = 10_000
-const maxLikes = 1000
-const maxContinuedLikes = 20
-
 var retryOptions = try.NewOptions(try.WithExponentialBackoff(2*time.Second, 10*time.Second), try.WithAttempts(5))
 
 func initLogLevel() *slog.LevelVar {
@@ -42,8 +38,11 @@ type CLI struct {
 func NewCLI() *CLI {
 	level := initLogLevel()
 	flags := botFlags{
-		UserMode: true,
-		Headless: true,
+		UserMode:          true,
+		Headless:          true,
+		MaxScrollPosts:    10_000,
+		MaxLikes:          1000,
+		MaxContinuedLikes: 30,
 	}
 
 	command := cobra.Command{
@@ -85,12 +84,12 @@ func NewCLI() *CLI {
 			p.MustWindowMaximize()
 			p.MustNavigate("https://www.instagram.com/")
 			slog.Info("Waiting for Instagram page to load...")
-			p.Timeout(30 * time.Second).MustElement("article:not([data-index]) div > div:last-child svg[aria-label$='Save']")
+			p.Timeout(5 * time.Second).MustElement("article:not([data-index]) div > div:last-child svg[aria-label$='Save']")
 
 			likedCnt := 0
 			alreadyLikedCnt := 0
 			article := p.MustElement("article:not([data-index])")
-			for i := range maxScrollPosts {
+			for i := range flags.MaxScrollPosts {
 				if i > 0 {
 					// Scroll to the next article.
 					time.Sleep(time.Second*2 + time.Duration(rand.Intn(500))*time.Millisecond)
@@ -113,6 +112,9 @@ func NewCLI() *CLI {
 					continue
 				}
 				if _, err := article.ElementX(`div//span[text()="You're all caught up"]`); err == nil {
+					if flags.ExtendedScroll {
+						continue
+					}
 					slog.Info("Stopped", slog.String("reason", "you're all caught up"))
 					break
 				}
@@ -153,11 +155,11 @@ func NewCLI() *CLI {
 					}
 				}
 
-				if likedCnt > maxLikes {
+				if likedCnt > flags.MaxLikes {
 					slog.Info("Stopped", slog.String("reason", "Reached maximum likes"))
 					break
 				}
-				if alreadyLikedCnt >= maxContinuedLikes {
+				if alreadyLikedCnt >= flags.MaxContinuedLikes {
 					slog.Info("Stopped", slog.String("reason", "It's likely that there is no more new post"))
 					break
 				}
@@ -172,6 +174,7 @@ func NewCLI() *CLI {
 	command.Flags().BoolVar(&flags.Headless, "headless", flags.Headless, "Enable headless mode")
 	command.Flags().BoolVar(&flags.UserMode, "usermode", flags.UserMode, "Enable usermode")
 	command.Flags().BoolVar(&flags.Leakless, "leakless", flags.Leakless, "Enable leakless")
+	command.Flags().BoolVar(&flags.ExtendedScroll, "ext", flags.ExtendedScroll, "Keep scroll posts after reached 'All caught up'")
 
 	command.PersistentFlags().Bool("debug", false, "Enable debug mode")
 	command.PersistentFlags().String("userdir", "chrome-user-data-test", "Enable debug mode")
@@ -185,9 +188,14 @@ func (cli *CLI) Execute() {
 }
 
 type botFlags struct {
-	Headless bool
-	UserMode bool
-	Leakless bool
+	Headless       bool
+	UserMode       bool
+	Leakless       bool
+	ExtendedScroll bool
+
+	MaxScrollPosts    int
+	MaxLikes          int
+	MaxContinuedLikes int
 }
 
 type PostMetadata struct {
