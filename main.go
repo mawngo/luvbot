@@ -33,7 +33,7 @@ func main() {
 	defer p.Close()
 
 	p.MustNavigate("https://www.instagram.com/")
-	p.MustElement("article:not([id]) div > div:last-child svg[aria-label$='ike']")
+	p.MustElement("article:not([id]) div > div:last-child svg[aria-label$='Save']")
 
 	likedCnt := 0
 	alreadyLikedCnt := 0
@@ -61,8 +61,12 @@ func main() {
 			fmt.Println("Ad - Skipped")
 			continue
 		}
+		if _, err := article.ElementX(`div//span[text()="You're all caught up"]`); err == nil {
+			fmt.Println("Stopped. You're all caught up")
+			break
+		}
 		// Wait for the article to be fully loaded.
-		p.MustElement(fmt.Sprintf("article[data-index='%d'] div > div:last-child svg[aria-label$='ike']", i))
+		p.MustElement(fmt.Sprintf("article[data-index='%d'] div > div:last-child svg[aria-label$='Save']", i))
 
 		meta, err := extractPostMetadata(article)
 		if err != nil {
@@ -152,5 +156,8 @@ func extractPostMetadata(article *rod.Element) (meta PostMetadata, err error) {
 	} else {
 		return PostMetadata{}, errors.New("like icon element not found")
 	}
+	// Click to remove the popup caused by hover over the username.
+	// IDK why it happened.
+	headerEl.MustClick()
 	return meta, nil
 }
