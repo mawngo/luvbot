@@ -41,6 +41,11 @@ type CLI struct {
 // NewCLI create new CLI instance and set up application config.
 func NewCLI() *CLI {
 	level := initLogLevel()
+	flags := botFlags{
+		UserMode: true,
+		Headless: true,
+	}
+
 	command := cobra.Command{
 		Use:   "luvbot",
 		Short: "Automatically liking Instagram posts",
@@ -57,11 +62,10 @@ func NewCLI() *CLI {
 		},
 		Run: func(cmd *cobra.Command, _ []string) {
 			start := time.Now()
-			l := launcher.
-				NewUserMode().
-				UserDataDir(filepath.Join("profiles", "chrome-user-data-test")).
-				Leakless(false).
-				Headless(lo.Must(cmd.Flags().GetBool("headless")))
+			l := lo.Ternary(flags.UserMode, launcher.NewUserMode(), launcher.New())
+			l = l.UserDataDir(filepath.Join("profiles", lo.Must(cmd.PersistentFlags().GetString("userdir")))).
+				Leakless(flags.Leakless).
+				Headless(flags.Headless)
 
 			l.Set("disable-features", "CreateDesktopShortcut")
 			u := l.MustLaunch()
@@ -161,8 +165,12 @@ func NewCLI() *CLI {
 	}
 
 	command.Flags().SortFlags = false
-	command.Flags().Bool("headless", true, "Enable headless mode")
+	command.Flags().BoolVar(&flags.Headless, "headless", flags.Headless, "Enable headless mode")
+	command.Flags().BoolVar(&flags.UserMode, "usermode", flags.UserMode, "Enable usermode")
+	command.Flags().BoolVar(&flags.Leakless, "leakless", flags.Leakless, "Enable leakless")
+
 	command.PersistentFlags().Bool("debug", false, "Enable debug mode")
+	command.PersistentFlags().String("userdir", "chrome-user-data-test", "Enable debug mode")
 	return &CLI{&command}
 }
 
@@ -170,6 +178,12 @@ func (cli *CLI) Execute() {
 	if err := cli.command.Execute(); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 	}
+}
+
+type botFlags struct {
+	Headless bool
+	UserMode bool
+	Leakless bool
 }
 
 type PostMetadata struct {
