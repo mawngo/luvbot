@@ -66,7 +66,7 @@ func NewCLI() *CLI {
 			l = l.UserDataDir(filepath.Join("profiles", lo.Must(cmd.PersistentFlags().GetString("userdir")))).
 				Leakless(flags.Leakless).
 				Headless(flags.Headless)
-
+			l.Set("disable-blink-features", "AutomationControlled")
 			l.Set("disable-features", "CreateDesktopShortcut")
 			u := l.MustLaunch()
 			defer l.Kill()
@@ -77,8 +77,12 @@ func NewCLI() *CLI {
 
 			p := b.MustPage()
 			defer p.Close()
-
-			slog.Info("Browser launched")
+			defer func() {
+				if r := recover(); r != nil {
+					p.MustScreenshot(filepath.Join("errors", time.Now().Format("2006-01-02-150405_panic.png")))
+				}
+			}()
+			p.MustWindowMaximize()
 			p.MustNavigate("https://www.instagram.com/")
 			slog.Info("Waiting for Instagram page to load...")
 			p.Timeout(30 * time.Second).MustElement("article:not([data-index]) div > div:last-child svg[aria-label$='Save']")
