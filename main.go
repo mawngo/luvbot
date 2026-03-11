@@ -15,7 +15,12 @@ const MaxLikes = 1000
 const MaxContinuedLikes = 20
 
 func main() {
-	l := launcher.NewUserMode().UserDataDir(filepath.Join("profiles", "chrome-user-data-test")).Leakless(false)
+	l := launcher.
+		NewUserMode().
+		UserDataDir(filepath.Join("profiles", "chrome-user-data-test")).
+		Leakless(false).
+		Headless(true)
+
 	l.Set("disable-features", "CreateDesktopShortcut")
 	u := l.MustLaunch()
 	defer l.Kill()
@@ -64,7 +69,16 @@ func main() {
 			fmt.Println("Error: " + err.Error())
 			break
 		}
-		meta.Println()
+
+		fmt.Printf("%d. @%s - %s", i+1, meta.Username, meta.Time.Format("2006-01-02 15:05"))
+		if meta.Liked {
+			fmt.Print(" [Liked]")
+		}
+		if !meta.Followed {
+			fmt.Print(" [Not Followed]")
+		}
+		fmt.Println()
+
 		if meta.Followed {
 			if meta.Liked {
 				alreadyLikedCnt++
@@ -94,17 +108,6 @@ type PostMetadata struct {
 	Followed bool
 	Liked    bool
 	LikeBtn  *rod.Element
-}
-
-func (m PostMetadata) Println() {
-	fmt.Printf("@%s - %s", m.Username, m.Time.Format("2006-01-02 15:05"))
-	if m.Liked {
-		fmt.Print(" [Liked]")
-	}
-	if !m.Followed {
-		fmt.Print(" [Not Followed]")
-	}
-	fmt.Println()
 }
 
 func extractPostMetadata(article *rod.Element) (meta PostMetadata, err error) {
