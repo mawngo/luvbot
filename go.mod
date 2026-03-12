@@ -4,6 +4,7 @@ go 1.26
 
 require (
 	github.com/go-rod/rod v0.116.2
+	github.com/go-rod/stealth v0.4.9
 	github.com/mawngo/go-try/v2 v2.2.1
 	github.com/phsym/console-slog v0.3.1
 	github.com/samber/lo v1.53.0
