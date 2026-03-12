@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"log/slog"
 	"luvbot/cmd/ig"
+	"luvbot/cmd/profile"
 	"os"
 	"time"
 )
@@ -34,12 +35,16 @@ func NewCLI() *CLI {
 		Use:   "luvbot",
 		Short: "Automatically liking Instagram posts",
 		PersistentPreRun: func(cmd *cobra.Command, _ []string) {
-			if lo.Must(cmd.PersistentFlags().GetBool("debug")) {
+			if lo.Must(cmd.Flags().GetBool("debug")) {
 				level.Set(slog.LevelDebug)
 			}
 		},
 	}
-	command.AddCommand(ig.NewCmd())
+	command.PersistentFlags().Bool("debug", false, "Enable debug mode")
+	command.AddCommand(
+		profile.NewCmd(),
+		ig.NewCmd(),
+	)
 	return &CLI{&command}
 }
 
