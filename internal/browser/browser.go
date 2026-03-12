@@ -32,13 +32,13 @@ func NewHeadlessFlags() Flags {
 }
 
 func BindCmdFlags(cmd *cobra.Command, flags *Flags) {
-	cmd.Flags().BoolVar(&flags.Headless, "headless", flags.Headless, "Enable headless mode")
-	cmd.Flags().BoolVar(&flags.UserMode, "usermode", flags.UserMode, "Enable usermode")
-	cmd.Flags().BoolVar(&flags.Leakless, "leakless", flags.Leakless, "Enable leakless")
-	cmd.Flags().BoolVar(&flags.Stealth, "stealth", flags.Stealth, "Enable stealth mode")
+	cmd.Flags().BoolVar(&flags.Headless, "headless", flags.Headless, "enable headless mode")
+	cmd.Flags().BoolVar(&flags.UserMode, "usermode", flags.UserMode, "enable usermode")
+	cmd.Flags().BoolVar(&flags.Leakless, "leakless", flags.Leakless, "enable leakless")
+	cmd.Flags().BoolVar(&flags.Stealth, "stealth", flags.Stealth, "enable stealth mode")
 
-	cmd.Flags().StringVar(&flags.Profile, "profile", flags.Profile, "Select profile to use")
-	cmd.Flags().StringSliceVar(&flags.XVFB, "xvfb", flags.XVFB, "Enable xvfb mode")
+	cmd.Flags().StringVar(&flags.Profile, "profile", flags.Profile, "select profile to use")
+	cmd.Flags().StringSliceVar(&flags.XVFB, "xvfb", flags.XVFB, "enable XVFB mode")
 }
 
 func NewPage(f Flags) (*Page, error) {

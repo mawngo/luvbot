@@ -1,3 +1,49 @@
 # Luv Bot
 
 A bot that automatically likes Instagram posts.
+
+## Installation
+
+Require go 1.26+
+
+```shell
+go install github.com/mawngo/luvbot@latest
+```
+
+## Usage
+
+### Account Setup
+
+Run the following command will open a browser for you to set up your account.
+
+```shell
+luvbot profile setup
+```
+
+### Run the bot
+
+```shell
+luvbot ig
+```
+
+### Options
+
+```
+> luvbot -h  
+Automatically liking Instagram posts
+
+Usage:
+  luvbot [command]
+
+Available Commands:
+  profile     Profile account management
+  ig          Automatically liking Instagram posts
+  help        Help about any command
+  completion  Generate the autocompletion script for the specified shell
+
+Flags:
+      --debug   enable debug mode
+  -h, --help    help for luvbot
+
+Use "luvbot [command] --help" for more information about a command.
+```

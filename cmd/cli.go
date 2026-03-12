@@ -40,7 +40,7 @@ func NewCLI() *CLI {
 			}
 		},
 	}
-	command.PersistentFlags().Bool("debug", false, "Enable debug mode")
+	command.PersistentFlags().Bool("debug", false, "enable debug mode")
 	command.AddCommand(
 		profile.NewCmd(),
 		ig.NewCmd(),
