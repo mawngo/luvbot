@@ -19,7 +19,7 @@ func newSetupCmd() *cobra.Command {
 		Use:   "setup",
 		Short: "Open browser in headful mode for account setup",
 		Args:  cobra.NoArgs,
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			slog.Info("Opening browser in headful mode for account setup", slog.String("profile", f.Profile))
 			p, err := browser.NewPage(f)
 			if err != nil {

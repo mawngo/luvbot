@@ -129,7 +129,6 @@ func (p *Page) RecoverWithScreenShot() {
 				slog.Any("err", r),
 				slog.String("screenshot", "error"),
 				slog.Any("screenshotErr", err))
-
 		}
 		slog.Error("Error", slog.Any("err", r), slog.String("screenshot", screenshot))
 		fmt.Printf("Stack trace:\n%s", debug.Stack())
