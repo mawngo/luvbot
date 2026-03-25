@@ -8,23 +8,22 @@ import (
 	"time"
 )
 
-func NewCmd() *cobra.Command {
+func NewPostsCmd() *cobra.Command {
 	f := flags{
 		Flags:         browser.NewHeadlessFlags(),
 		LikePostFlags: igbot.NewLikePostsFlags(),
 	}
 
 	command := cobra.Command{
-		Use:   "ig",
-		Short: "Automatically liking Instagram posts and stories",
+		Use:   "posts",
+		Short: "Automatically liking Instagram posts",
 		Args:  cobra.NoArgs,
-		Run: func(_ *cobra.Command, _ []string) {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			start := time.Now()
-			_ = browser.Execute(f.Flags, func(p *browser.Page) error {
+			return browser.Execute(f.Flags, func(p *browser.Page) error {
 				likedCnt, err := igbot.LikePosts(p, f.LikePostFlags)
 				if err != nil {
-					slog.Error("Error liking posts", slog.Any("err", err))
-					return nil
+					return err
 				}
 				slog.Info("Completed",
 					slog.Int("liked", likedCnt),
@@ -35,7 +34,10 @@ func NewCmd() *cobra.Command {
 	}
 	browser.BindCmdFlags(&command, &f.Flags)
 	igbot.BindCmdLikePostsFlags(&command, &f.LikePostFlags)
-
-	command.AddCommand(NewPostsCmd())
 	return &command
+}
+
+type flags struct {
+	browser.Flags
+	igbot.LikePostFlags
 }

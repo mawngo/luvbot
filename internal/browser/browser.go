@@ -1,6 +1,7 @@
 package browser
 
 import (
+	"fmt"
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
@@ -10,6 +11,7 @@ import (
 	"log/slog"
 	"luvbot/internal/config"
 	"path/filepath"
+	"runtime/debug"
 	"time"
 )
 
@@ -39,6 +41,17 @@ func BindCmdFlags(cmd *cobra.Command, flags *Flags) {
 
 	cmd.Flags().StringVar(&flags.Profile, "profile", flags.Profile, "select profile to use")
 	cmd.Flags().StringSliceVar(&flags.XVFB, "xvfb", flags.XVFB, "enable XVFB mode")
+}
+
+func Execute(f Flags, handler func(page *Page) error) error {
+	p, err := NewPage(f)
+	if err != nil {
+		slog.Error("Cannot open browser", slog.Any("err", err))
+	}
+	defer p.Close()
+	defer p.RecoverWithScreenShot()
+	err = handler(p)
+	return err
 }
 
 func NewPage(f Flags) (*Page, error) {
@@ -119,5 +132,6 @@ func (p *Page) RecoverWithScreenShot() {
 
 		}
 		slog.Error("Error", slog.Any("err", r), slog.String("screenshot", screenshot))
+		fmt.Printf("Stack trace:\n%s", debug.Stack())
 	}
 }
