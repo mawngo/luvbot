@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-rod/rod"
 	"github.com/mawngo/go-try/v2"
+	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
 	"luvbot/internal/browser"
@@ -54,9 +55,19 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 			// Scroll to the next article.
 			waitBetweenArticle()
 			var err error
-			article, err = try.GetWithOptions(article.Next, config.ElementRetryOpt)
+			article, err = try.GetWithOptions(func() (*rod.Element, error) {
+				next, err := article.Next()
+				if err != nil {
+					return article, err
+				}
+				return next, nil
+			}, config.ElementRetryOpt)
 			if err != nil {
-				slog.Error("Cannot scroll to next article", slog.Any("err", err))
+				html, err := article.HTML()
+				slog.Error("Cannot scroll to next article",
+					slog.Any("err", err),
+					slog.String("currentEl", lo.Ternary(err != nil, err.Error(), html)),
+				)
 				break
 			}
 		}
