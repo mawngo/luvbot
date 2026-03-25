@@ -122,15 +122,18 @@ func (p *Page) Close() {
 // RecoverWithScreenShot catch panic and save a screenshot.
 func (p *Page) RecoverWithScreenShot() {
 	if r := recover(); r != nil {
+		defer fmt.Printf("Stack trace:\n%s", debug.Stack())
+
 		screenshot := filepath.Join(config.ErrorScreenshotsDirectory, time.Now().Format("2006-01-02-150405_panic.png"))
-		_, err := p.Screenshot(false, nil)
-		if err != nil {
-			slog.Error("Error",
-				slog.Any("err", r),
-				slog.String("screenshot", "error"),
-				slog.Any("screenshotErr", err))
-		}
+		p.MustScreenshot(screenshot)
+		defer func() {
+			if sr := recover(); sr != nil {
+				slog.Error("Error",
+					slog.Any("err", r),
+					slog.String("screenshot", "error"),
+					slog.Any("screenshotErr", sr))
+			}
+		}()
 		slog.Error("Error", slog.Any("err", r), slog.String("screenshot", screenshot))
-		fmt.Printf("Stack trace:\n%s", debug.Stack())
 	}
 }
