@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-rod/rod"
+	"github.com/mawngo/go-try/v2"
 	"log/slog"
 	"luvbot/internal/browser"
+	"luvbot/internal/config"
 	"time"
 )
 
@@ -78,7 +80,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	return likedCnt, nil
 }
 
-func openStories(p *browser.Page, loadTimeout time.Duration) (container *rod.Element) {
+func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 	p.Timeout(loadTimeout).MustElement(`div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`)
 	for i := range 1000 {
 		waitBetweenArticle()
@@ -90,11 +92,16 @@ func openStories(p *browser.Page, loadTimeout time.Duration) (container *rod.Ele
 			return nil
 		}
 
-		el := storiesEl[i]
-		el.MustClick()
+		container, err := try.GetWithOptions(func() (*rod.Element, error) {
+			slog.Debug("Waiting for story container to open...")
+			el := storiesEl[i]
+			el.MustClick()
+			return p.Timeout(loadTimeout).Element(`section:has(svg[aria-label="Close"]):has(div > div > div > div > div > div > div > div > video)`)
+		}, config.ElementRetryOpt)
+		if err != nil {
+			panic(err)
+		}
 
-		slog.Debug("Waiting for story container to open...")
-		container = p.Timeout(loadTimeout).MustElement(`section:has(svg[aria-label="Close"]):has(div > div > div > div > div > div > div > div > video)`)
 		closeBtn := container.MustElement(`svg[aria-label="Close"]`)
 
 		// Exclude LIVE.
