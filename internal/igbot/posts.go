@@ -18,7 +18,7 @@ func NewLikePostsFlags() LikePostFlags {
 	return LikePostFlags{
 		MaxScrollPosts:    10_000,
 		MaxLikes:          1000,
-		MaxContinuedLikes: 30,
+		MaxContinuedLikes: 20,
 		FistLoadTimeout:   1 * time.Minute,
 		ElementTimeout:    10 * time.Minute,
 	}

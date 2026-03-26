@@ -86,7 +86,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration) (container *rod.Ele
 		if len(storiesEl) == 0 {
 			panic("Cannot detect story tray!")
 		}
-		if len(storiesEl) < i {
+		if len(storiesEl) <= i {
 			return nil
 		}
 
