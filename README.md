@@ -1,6 +1,11 @@
 # Luv Bot
 
-A bot that automatically likes Instagram posts.
+A bot that automatically likes Instagram posts and stories.
+
+- To make your friends happy.
+- To spread love to the world.
+
+**Using this bot may get your account banned.**
 
 ## Installation
 
@@ -30,14 +35,14 @@ luvbot ig
 
 ```
 > luvbot -h  
-Automatically liking Instagram posts
+Automatically liking Instagram posts and stories
 
 Usage:
   luvbot [command]
 
 Available Commands:
   profile     Profile account management
-  ig          Automatically liking Instagram posts
+  ig          Automatically liking Instagram posts and stories
   help        Help about any command
   completion  Generate the autocompletion script for the specified shell
 

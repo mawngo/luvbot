@@ -33,7 +33,7 @@ func NewCLI() *CLI {
 	level := initLogLevel()
 	command := cobra.Command{
 		Use:   "luvbot",
-		Short: "Automatically liking Instagram posts",
+		Short: "Automatically liking Instagram posts and stories",
 		PersistentPreRun: func(cmd *cobra.Command, _ []string) {
 			if lo.Must(cmd.Flags().GetBool("debug")) {
 				level.Set(slog.LevelDebug)

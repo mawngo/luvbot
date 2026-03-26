@@ -37,7 +37,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 
 		article := container.MustElement("div > div > div[style]:not(:has(>a)) > div[class]")
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
-			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "not an article"))
+			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
 			continue
 		}
 

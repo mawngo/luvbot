@@ -16,11 +16,11 @@ import (
 
 func NewLikePostsFlags() LikePostFlags {
 	return LikePostFlags{
-		MaxScrollPosts:    10_000,
+		MaxScrollPosts:    5000,
 		MaxLikes:          1000,
-		MaxContinuedLikes: 20,
+		MaxContinuedLikes: 15,
 		FistLoadTimeout:   1 * time.Minute,
-		ElementTimeout:    10 * time.Minute,
+		ElementTimeout:    5 * time.Minute,
 	}
 }
 
