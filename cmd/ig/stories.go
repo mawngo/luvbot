@@ -13,6 +13,7 @@ func NewStoriesCmd() *cobra.Command {
 		Flags:         browser.NewHeadlessFlags(),
 		LikePostFlags: igbot.NewLikePostsFlags(),
 	}
+	f.MaxContinuedLikes = igbot.DefaultStoriesMaxContinuationLikes
 
 	command := cobra.Command{
 		Use:   "stories",

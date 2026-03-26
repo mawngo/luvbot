@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const DefaultStoriesMaxContinuationLikes = 10
+
 func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	p.MustNavigate("https://www.instagram.com/")
 	slog.Info("Waiting for Instagram page to load...")
@@ -35,9 +37,11 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
-		article := container.MustElement("div > div > div[style]:not(:has(>a)) > div[class]")
+		article := container.MustElement("div > div > div[style]:not(:has(>a)):has(>div[class])")
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
+			// Skip all story, go straight to the next article.
+			nextBtn, _ = article.Next()
 			continue
 		}
 
@@ -56,12 +60,22 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 		)
 
 		// Handling like and limit.
+		if meta.LikeBtn == nil {
+			// There is no like btn, it is pointless to keep scrolling this story.
+			nextBtn, _ = article.Next()
+			continue
+		}
+
 		if meta.Liked {
 			alreadyLikedCnt++
+			// If the story was already liked, then maybe
+			// the bot already handled this article.
+			// Jump to the next article immediately.
+			nextBtn, _ = article.Next()
 		} else {
 			slog.Debug("Liking...")
 			alreadyLikedCnt = 0
-			if !f.SeenOnly && meta.LikeBtn != nil {
+			if !f.SeenOnly {
 				meta.LikeBtn.MustClick()
 			}
 			likedCnt++
