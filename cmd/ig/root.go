@@ -27,7 +27,6 @@ func NewCmd() *cobra.Command {
 					return nil
 				}
 
-				f.MaxContinuedLikes = igbot.DefaultStoriesMaxContinuationLikes
 				storiesLikedCnt, err := igbot.LikeStories(p, f.LikePostFlags)
 				if err != nil {
 					slog.Error("Error liking stories", slog.Any("err", err))

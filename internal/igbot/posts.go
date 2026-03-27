@@ -18,7 +18,7 @@ func NewLikePostsFlags() LikePostFlags {
 	return LikePostFlags{
 		MaxScrollPosts:    5000,
 		MaxLikes:          1000,
-		MaxContinuedLikes: 15,
+		MaxContinuedLikes: 10,
 		FistLoadTimeout:   1 * time.Minute,
 		ElementTimeout:    5 * time.Minute,
 	}
@@ -28,6 +28,7 @@ func BindCmdLikePostsFlags(command *cobra.Command, f *LikePostFlags) {
 	command.Flags().BoolVar(&f.ExtendedScroll, "ext", f.ExtendedScroll, "Keep scroll posts or stories after reached the end")
 	command.Flags().BoolVar(&f.SeenOnly, "seen", f.SeenOnly, "Does not like posts")
 	command.Flags().DurationVar(&f.FistLoadTimeout, "first-load-timeout", f.FistLoadTimeout, "Timeout waiting for the first load to show up")
+	command.Flags().BoolVar(&f.EarlyStop, "early-stop", f.EarlyStop, "Stop liking posts after 3 continuous liking")
 }
 
 type LikePostFlags struct {
@@ -35,6 +36,7 @@ type LikePostFlags struct {
 	MaxScrollPosts    int
 	MaxLikes          int
 	MaxContinuedLikes int
+	EarlyStop         bool
 	SeenOnly          bool
 
 	FistLoadTimeout time.Duration
@@ -42,6 +44,9 @@ type LikePostFlags struct {
 }
 
 func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
+	if f.EarlyStop {
+		f.MaxContinuedLikes = 3
+	}
 	p.MustNavigate("https://www.instagram.com/")
 	slog.Info("Waiting for Instagram page to load...")
 	p.MustWaitLoad()

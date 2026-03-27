@@ -8,12 +8,14 @@ import (
 	"log/slog"
 	"luvbot/internal/browser"
 	"luvbot/internal/config"
+	"math/rand"
 	"time"
 )
 
-const DefaultStoriesMaxContinuationLikes = 10
-
 func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
+	if f.EarlyStop {
+		f.MaxContinuedLikes = 3
+	}
 	p.MustNavigate("https://www.instagram.com/")
 	slog.Info("Waiting for Instagram page to load...")
 	p.MustWaitLoad()
