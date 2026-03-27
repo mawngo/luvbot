@@ -1,9 +1,8 @@
 package igbot
 
 import (
-	"errors"
-	"fmt"
 	"github.com/go-rod/rod"
+	"github.com/mawngo/go-errors"
 	"github.com/mawngo/go-try/v2"
 	"log/slog"
 	"luvbot/internal/browser"
@@ -142,31 +141,31 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error) {
 	unameEl, err := container.Element(`div > a[href^="/"] > span > span`)
 	if err != nil {
-		return meta, errors.New("username element not found")
+		return meta, errors.Newf("username element not found")
 	}
 	meta.Username, err = unameEl.Text()
 	if err != nil {
-		return meta, errors.New("cannot extract username text")
+		return meta, errors.Newf("cannot extract username text")
 	}
 
 	if timeEl, err := container.Element("time"); err == nil {
 		rawPostTime, err := timeEl.Attribute("datetime")
 		if err != nil || rawPostTime == nil {
-			return meta, errors.New("story time element missing datetime attribute")
+			return meta, errors.Newf("story time element missing datetime attribute")
 		}
 
 		meta.Time, err = time.Parse(time.RFC3339, *rawPostTime)
 		if err != nil {
-			return meta, fmt.Errorf("cannot parse story time: %s", *rawPostTime)
+			return meta, errors.Newf("cannot parse story time: %s", *rawPostTime)
 		}
 	} else {
-		return meta, errors.New("story time element not found")
+		return meta, errors.Newf("story time element not found")
 	}
 
 	if meta.LikeBtn, err = container.Element(`div[role="button"] svg[aria-label$="ike"]`); err == nil {
 		label, err := meta.LikeBtn.Attribute("aria-label")
 		if err != nil || label == nil {
-			return meta, errors.New("like icon element missing aria-label attribute")
+			return meta, errors.Newf("like icon element missing aria-label attribute")
 		}
 		meta.Liked = *label != "Like"
 	}

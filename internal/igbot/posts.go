@@ -1,9 +1,9 @@
 package igbot
 
 import (
-	"errors"
 	"fmt"
 	"github.com/go-rod/rod"
+	"github.com/mawngo/go-errors"
 	"github.com/mawngo/go-try/v2"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
@@ -161,7 +161,7 @@ type postMetadata struct {
 func extractPostMetadata(article *rod.Element) (meta postMetadata, err error) {
 	headerEl, err := article.Element("div > div")
 	if err != nil {
-		return postMetadata{}, errors.New("header group not found")
+		return postMetadata{}, errors.Newf("header group not found")
 	}
 
 	unameEls := headerEl.MustElements("span > div > a[href^='/'] span, span > a[href='#'] span")
@@ -169,24 +169,24 @@ func extractPostMetadata(article *rod.Element) (meta postMetadata, err error) {
 	if !unameEls.Empty() {
 		meta.Username, err = unameEls.First().Text()
 		if err != nil {
-			return postMetadata{}, errors.New("cannot extract username text")
+			return postMetadata{}, errors.Newf("cannot extract username text")
 		}
 	} else {
-		return postMetadata{}, errors.New("username element not found")
+		return postMetadata{}, errors.Newf("username element not found")
 	}
 
 	if postTimeEl, err := headerEl.Element("time"); err == nil {
 		rawPostTime, err := postTimeEl.Attribute("datetime")
 		if err != nil || rawPostTime == nil {
-			return postMetadata{}, errors.New("post time element missing datetime attribute")
+			return postMetadata{}, errors.Newf("post time element missing datetime attribute")
 		}
 
 		meta.Time, err = time.Parse(time.RFC3339, *rawPostTime)
 		if err != nil {
-			return postMetadata{}, fmt.Errorf("cannot parse post time: %s", *rawPostTime)
+			return postMetadata{}, errors.Newf("cannot parse post time: %s", *rawPostTime)
 		}
 	} else {
-		return postMetadata{}, errors.New("post time element not found")
+		return postMetadata{}, errors.Newf("post time element not found")
 	}
 
 	if !meta.IsMultipleUser {
@@ -198,11 +198,11 @@ func extractPostMetadata(article *rod.Element) (meta postMetadata, err error) {
 	if meta.LikeBtn, err = article.Element("div > div:last-child section svg[aria-label$='ike']"); err == nil {
 		label, err := meta.LikeBtn.Attribute("aria-label")
 		if err != nil || label == nil {
-			return postMetadata{}, errors.New("like icon element missing aria-label attribute")
+			return postMetadata{}, errors.Newf("like icon element missing aria-label attribute")
 		}
 		meta.Liked = *label != "Like"
 	} else {
-		return postMetadata{}, errors.New("like icon element not found")
+		return postMetadata{}, errors.Newf("like icon element not found")
 	}
 	// Hover post content to remove the popup caused by hover over the username.
 	// IDK why it happened.
