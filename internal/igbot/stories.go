@@ -33,11 +33,11 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 				break
 			}
 			nextBtn.MustClick()
-			waitBetweenArticle()
+			time.Sleep(1*time.Second + 500*time.Millisecond + time.Duration(rand.Intn(300))*time.Millisecond)
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
-		article := container.MustElement("div > div > div[style]:not(:has(>a)):has(>div[class])")
+		article := container.Timeout(f.ElementTimeout).MustElement("div > div > div[style]:not(:has(>a)):has(>div[class])")
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
 			// Skip all story, go straight to the next article.
@@ -46,7 +46,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 		}
 
 		slog.Debug("Parsing metadata...")
-		meta, err := extractStoryMetadata(article)
+		meta, err := extractStoryMetadata(article.CancelTimeout())
 		if err != nil {
 			slog.Error("Failed to extract story metadata", slog.Any("err", err))
 			break
