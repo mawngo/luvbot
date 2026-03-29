@@ -11,13 +11,20 @@ import (
 	"time"
 )
 
+// LikeStories Open IG, open story view and like all likable stories in the view.
+// This function will close the story view after completed.
 func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	if f.EarlyStop {
 		f.MaxContinuedLikes = 3
 	}
-	p.MustNavigate("https://www.instagram.com/")
-	slog.Info("Waiting for Instagram page to load...")
-	p.MustWaitLoad()
+
+	if info := p.MustInfo(); info.URL != HomePageURL {
+		p.MustNavigate(HomePageURL)
+		slog.Info("Waiting for Instagram page to load...")
+		p.MustWaitLoad()
+	}
+
+	slog.Info("Waiting for first story...")
 	container := openStories(p, f.FistLoadTimeout)
 	if container == nil {
 		slog.Info("Stopped", slog.String("reason", "empty stories"))
@@ -34,7 +41,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 				break
 			}
 			nextBtn.MustClick()
-			time.Sleep(1*time.Second + 500*time.Millisecond + time.Duration(rand.Intn(300))*time.Millisecond)
+			time.Sleep(1*time.Second + 500*time.Millisecond + time.Duration(rand.Intn(500))*time.Millisecond)
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
@@ -92,13 +99,21 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			break
 		}
 	}
+
+	slog.Debug("Closing stories view...")
+	// Close the story view.
+	closeBtn, err := container.Timeout(f.ElementTimeout).Element(`svg[aria-label="Close"]`)
+	if err != nil {
+		return likedCnt, errors.Wrapf(err, "cannot find close button on story view")
+	}
+	closeBtn.MustClick()
 	return likedCnt, nil
 }
 
 func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
-	p.Timeout(loadTimeout).MustElement(`div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`)
+	p.Timeout(loadTimeout).MustElement(`div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`).MustScrollIntoView()
 	for i := range 1000 {
-		waitBetweenArticle()
+		WaitBetweenArticle()
 		storiesEl := p.MustElements(`div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`)
 		if len(storiesEl) == 0 {
 			panic("Cannot detect story tray!")
@@ -121,16 +136,16 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 
 		// Exclude LIVE.
 		if _, err := container.ElementX(`div//span[text()="LIVE"]`); err == nil {
-			closeBtn.MustClick()
 			slog.Debug("Next", slog.String("reason", "LIVE story"))
+			closeBtn.MustClick()
 			continue
 		}
 
 		// Must have a like button to make sure this is an actual story.
 		article := container.MustElement("div > div > div[style]:not(:has(>a))")
 		if _, err := article.Element(`svg[aria-label$="ike"]`); err != nil {
-			closeBtn.MustClick()
 			slog.Debug("Next", slog.String("reason", "No Like button"))
+			closeBtn.MustClick()
 			continue
 		}
 		break

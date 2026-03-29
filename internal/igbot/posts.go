@@ -14,6 +14,8 @@ import (
 	"time"
 )
 
+const HomePageURL = "https://www.instagram.com/"
+
 func NewLikePostsFlags() LikePostFlags {
 	return LikePostFlags{
 		MaxScrollPosts:    5000,
@@ -43,13 +45,19 @@ type LikePostFlags struct {
 	ElementTimeout  time.Duration
 }
 
+// LikePosts Open IG and like all posts in the feed.
 func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 	if f.EarlyStop {
 		f.MaxContinuedLikes = 3
 	}
-	p.MustNavigate("https://www.instagram.com/")
-	slog.Info("Waiting for Instagram page to load...")
-	p.MustWaitLoad()
+
+	if info := p.MustInfo(); info.URL != HomePageURL {
+		p.MustNavigate(HomePageURL)
+		slog.Info("Waiting for Instagram page to load...")
+		p.MustWaitLoad()
+	}
+
+	slog.Info("Waiting for first post...")
 	p.Timeout(f.FistLoadTimeout).MustElement("article:not([data-index]) div > div:last-child svg[aria-label$='Save']")
 
 	likedCnt := 0
@@ -58,7 +66,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 	for i := range f.MaxScrollPosts {
 		if i > 0 {
 			// Scroll to the next article.
-			waitBetweenArticle()
+			WaitBetweenArticle()
 			var err error
 			article, err = try.GetWithOptions(func() (*rod.Element, error) {
 				next, err := article.Next()
@@ -105,6 +113,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 		p.Timeout(f.ElementTimeout).MustElement(fmt.Sprintf("article[data-index='%d'] div > div:last-child svg[aria-label$='Save']", i))
 		slog.Debug("Article is fully loaded")
 
+		slog.Debug("Parsing metadata...")
 		meta, err := extractPostMetadata(article)
 		if err != nil {
 			slog.Error("Failed to extract post metadata", slog.Any("err", err))
@@ -145,7 +154,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 	return likedCnt, nil
 }
 
-func waitBetweenArticle() {
+func WaitBetweenArticle() {
 	time.Sleep(2*time.Second + time.Duration(rand.Intn(500))*time.Millisecond)
 }
 
