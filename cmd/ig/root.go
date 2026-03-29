@@ -21,17 +21,19 @@ func NewCmd() *cobra.Command {
 		Run: func(_ *cobra.Command, _ []string) {
 			start := time.Now()
 			_ = browser.Execute(f.Flags, func(p *browser.Page) error {
+				storiesLikedCnt, err := igbot.LikeStories(p, f.LikePostFlags)
+				if err != nil {
+					slog.Error("Error liking stories", slog.Any("err", err))
+					return nil
+				}
+
+				igbot.WaitBetweenArticle()
 				postLikedCnt, err := igbot.LikePosts(p, f.LikePostFlags)
 				if err != nil {
 					slog.Error("Error liking posts", slog.Any("err", err))
 					return nil
 				}
 
-				storiesLikedCnt, err := igbot.LikeStories(p, f.LikePostFlags)
-				if err != nil {
-					slog.Error("Error liking stories", slog.Any("err", err))
-					return nil
-				}
 				slog.Info("Completed",
 					slog.Int("posts", postLikedCnt),
 					slog.Int("stories", storiesLikedCnt),
