@@ -11,6 +11,16 @@ import (
 	"time"
 )
 
+const (
+	storyUsernameSelector  = `div > a[href^="/"] > span > span`
+	storyArticleSelector   = ":scope > div > div > div:not(:has(>a)):has(>div)"
+	storyContainerSelector = `section:has(svg[aria-label="Close"]):has(div > div > div > div > div > div > div > div > video,div > div > div > div > div > div > div > div > img)`
+	storyTrayStorySelector = `div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`
+
+	storyCloseBtnSelector = `svg[aria-label="Close"]`
+	storyLikeBtnSelector  = `svg[aria-label$="ike"]`
+)
+
 // LikeStories Open IG, open story view and like all likable stories in the view.
 // This function will close the story view after completed.
 func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
@@ -53,7 +63,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
-		article := container.Timeout(f.ElementTimeout).MustElement(":scope > div > div > div:not(:has(>a)):has(>div)")
+		article := container.Timeout(f.ElementTimeout).MustElement(storyArticleSelector)
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
 			// Skip all story, go straight to the next article.
@@ -120,12 +130,11 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 }
 
 func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
-	p.Timeout(loadTimeout).MustElement(`div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`).MustScrollIntoView()
-	containerSelector := `section:has(svg[aria-label="Close"]):has(div > div > div > div > div > div > div > div > video,div > div > div > div > div > div > div > div > img)`
+	p.Timeout(loadTimeout).MustElement(storyTrayStorySelector).MustScrollIntoView()
 
 	for i := range 1000 {
 		WaitBetweenArticle()
-		storiesEl := p.MustElements(`div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`)
+		storiesEl := p.MustElements(storyTrayStorySelector)
 		if len(storiesEl) == 0 {
 			panic("Cannot detect story tray!")
 		}
@@ -138,7 +147,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 			el := storiesEl[i]
 			el.MustClick()
 
-			c, err := p.Timeout(loadTimeout).Element(containerSelector)
+			c, err := p.Timeout(loadTimeout).Element(storyContainerSelector)
 			if err != nil {
 				// Close the story view if possible.
 				if closeBtn, err := el.Element(`section svg[aria-label="Close"]`); err == nil {
@@ -151,7 +160,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 			panic(err)
 		}
 
-		closeBtn := container.MustElement(`svg[aria-label="Close"]`)
+		closeBtn := container.MustElement(storyCloseBtnSelector)
 
 		// Exclude LIVE.
 		if _, err := container.ElementX(`div//span[text()="LIVE"]`); err == nil {
@@ -161,19 +170,19 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		}
 
 		// Must have a like button to make sure this is an actual story.
-		article := container.MustElement(":scope > div > div > div:not(:has(>a)):has(>div)")
-		if _, err := article.Element(`svg[aria-label$="ike"]`); err != nil {
+		article := container.MustElement(storyArticleSelector)
+		if _, err := article.Element(storyLikeBtnSelector); err != nil {
 			slog.Debug("Next", slog.String("reason", "No Like button"))
 			closeBtn.MustClick()
 			continue
 		}
 		break
 	}
-	return p.MustElement(containerSelector)
+	return p.MustElement(storyContainerSelector)
 }
 
 func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error) {
-	unameEl, err := container.Element(`div > a[href^="/"] > span > span`)
+	unameEl, err := container.Element(storyUsernameSelector)
 	if err != nil {
 		return meta, errors.Newf("username element not found")
 	}
@@ -196,7 +205,7 @@ func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error
 		return meta, errors.Newf("story time element not found")
 	}
 
-	if meta.LikeBtn, err = container.Element(`svg[aria-label$="ike"]`); err == nil {
+	if meta.LikeBtn, err = container.Element(storyLikeBtnSelector); err == nil {
 		label, err := meta.LikeBtn.Attribute("aria-label")
 		if err != nil || label == nil {
 			return meta, errors.Newf("like icon element missing aria-label attribute")
