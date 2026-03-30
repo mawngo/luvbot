@@ -52,3 +52,9 @@ Flags:
 
 Use "luvbot [command] --help" for more information about a command.
 ```
+
+## Caveats
+
+- Using the bot could get your account banned.
+- The automatic story liking is not reliable yet, it could miss some stories.
+- Sometimes the bot may fail to detect stories/posts and freeze.

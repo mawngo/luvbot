@@ -37,6 +37,14 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	for i := range f.MaxScrollPosts {
 		if i > 0 {
 			if nextBtn == nil {
+				// Try to detect the next button, again, in case the last detection failed for some reason.
+				nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
+				if nextBtn != nil {
+					slog.Warn("Restored next", slog.String("reason", "last detection failed"))
+				}
+			}
+
+			if nextBtn == nil {
 				slog.Info("Stopped", slog.String("reason", "no more story next"))
 				break
 			}
@@ -45,7 +53,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
-		article := container.Timeout(f.ElementTimeout).MustElement("div > div > div[style]:not(:has(>a)):has(>div[class])")
+		article := container.Timeout(f.ElementTimeout).MustElement(":scope > div > div > div:not(:has(>a)):has(>div)")
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
 			// Skip all story, go straight to the next article.
@@ -54,7 +62,8 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 		}
 
 		slog.Debug("Parsing metadata...")
-		meta, err := extractStoryMetadata(article.CancelTimeout())
+		article = article.CancelTimeout()
+		meta, err := extractStoryMetadata(article)
 		if err != nil {
 			slog.Error("Failed to extract story metadata", slog.Any("err", err))
 			break
@@ -112,6 +121,8 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 
 func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 	p.Timeout(loadTimeout).MustElement(`div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`).MustScrollIntoView()
+	containerSelector := `section:has(svg[aria-label="Close"]):has(div > div > div > div > div > div > div > div > video,div > div > div > div > div > div > div > div > img)`
+
 	for i := range 1000 {
 		WaitBetweenArticle()
 		storiesEl := p.MustElements(`div[data-pagelet="story_tray"] ul > li:has(div[role="button"]) div[role="button"]`)
@@ -126,7 +137,15 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 			slog.Debug("Waiting for story container to open...")
 			el := storiesEl[i]
 			el.MustClick()
-			return p.Timeout(loadTimeout).Element(`section:has(svg[aria-label="Close"]):has(div > div > div > div > div > div > div > div > video)`)
+
+			c, err := p.Timeout(loadTimeout).Element(containerSelector)
+			if err != nil {
+				// Close the story view if possible.
+				if closeBtn, err := el.Element(`section svg[aria-label="Close"]`); err == nil {
+					closeBtn.MustClick()
+				}
+			}
+			return c, nil
 		}, config.ElementRetryOpt)
 		if err != nil {
 			panic(err)
@@ -142,7 +161,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		}
 
 		// Must have a like button to make sure this is an actual story.
-		article := container.MustElement("div > div > div[style]:not(:has(>a))")
+		article := container.MustElement(":scope > div > div > div:not(:has(>a)):has(>div)")
 		if _, err := article.Element(`svg[aria-label$="ike"]`); err != nil {
 			slog.Debug("Next", slog.String("reason", "No Like button"))
 			closeBtn.MustClick()
@@ -150,7 +169,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		}
 		break
 	}
-	return p.MustElement(`section:has(svg[aria-label="Close"]):has(div > div > div > div > div > div > div > div > video)`)
+	return p.MustElement(containerSelector)
 }
 
 func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error) {
@@ -177,7 +196,7 @@ func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error
 		return meta, errors.Newf("story time element not found")
 	}
 
-	if meta.LikeBtn, err = container.Element(`div[role="button"] svg[aria-label$="ike"]`); err == nil {
+	if meta.LikeBtn, err = container.Element(`svg[aria-label$="ike"]`); err == nil {
 		label, err := meta.LikeBtn.Attribute("aria-label")
 		if err != nil || label == nil {
 			return meta, errors.Newf("like icon element missing aria-label attribute")
