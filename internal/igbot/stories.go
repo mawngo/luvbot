@@ -172,7 +172,11 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		// Must have a like button to make sure this is an actual story.
 		article := container.MustElement(storyArticleSelector)
 		if _, err := article.Element(storyLikeBtnSelector); err != nil {
-			slog.Debug("Next", slog.String("reason", "No Like button"))
+			uname := "nil"
+			if unameEl, err := container.Element(storyUsernameSelector); err == nil {
+				uname = unameEl.MustText()
+			}
+			slog.Debug("Next", slog.String("reason", "No Like button"), slog.String("u", uname))
 			closeBtn.MustClick()
 			continue
 		}
