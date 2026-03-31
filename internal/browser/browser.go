@@ -56,10 +56,13 @@ func Execute(f Flags, handler func(page *Page) error) error {
 
 func NewPage(f Flags) (*Page, error) {
 	l := lo.Ternary(f.UserMode, launcher.NewUserMode(), launcher.New())
-	isXVFBEnabled := len(f.XVFB) > 0
+	isXVFBEnabled := len(f.XVFB) > 0 && f.XVFB[0] != "false"
 	if isXVFBEnabled {
 		f.Headless = false
-		l = l.XVFB("-a")
+		if f.XVFB[0] == "true" {
+			f.XVFB = []string{"-a"}
+		}
+		l = l.XVFB(f.XVFB...)
 	}
 	l = l.UserDataDir(filepath.Join(config.ProfilesDirectory, lo.Ternary(f.Profile == "", config.DefaultProfile, f.Profile))).
 		Leakless(f.Leakless).
