@@ -89,6 +89,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 		// Handling like and limit.
 		if meta.LikeBtn == nil {
 			// There is no like btn, it is pointless to keep scrolling this story.
+			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "no like button"))
 			nextBtn, _ = article.Next()
 			continue
 		}
@@ -170,13 +171,13 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		}
 
 		// Must have a like button to make sure this is an actual story.
-		article := container.MustElement(storyArticleSelector)
+		article := container.Timeout(2 * time.Second).MustElement(storyArticleSelector)
 		if _, err := article.Element(storyLikeBtnSelector); err != nil {
 			uname := "nil"
 			if unameEl, err := container.Element(storyUsernameSelector); err == nil {
 				uname = unameEl.MustText()
 			}
-			slog.Debug("Next", slog.String("reason", "No Like button"), slog.String("u", uname))
+			slog.Debug("Next", slog.String("reason", "no Like button"), slog.String("u", uname))
 			closeBtn.MustClick()
 			continue
 		}
@@ -209,7 +210,7 @@ func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error
 		return meta, errors.Newf("story time element not found")
 	}
 
-	if meta.LikeBtn, err = container.Element(storyLikeBtnSelector); err == nil {
+	if meta.LikeBtn, err = container.Timeout(2 * time.Second).Element(storyLikeBtnSelector); err == nil {
 		label, err := meta.LikeBtn.Attribute("aria-label")
 		if err != nil || label == nil {
 			return meta, errors.Newf("like icon element missing aria-label attribute")
