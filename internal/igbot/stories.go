@@ -103,7 +103,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			slog.Debug("Liking...")
 			alreadyLikedCnt = 0
 			if !f.SeenOnly {
-				meta.LikeBtn.MustClick()
+				meta.LikeBtn.Timeout(f.ElementTimeout).MustClick()
 			}
 			likedCnt++
 			slog.Debug("Liked")
