@@ -173,7 +173,7 @@ func extractPostMetadata(article *rod.Element) (meta postMetadata, err error) {
 		return postMetadata{}, errors.Newf("header group not found")
 	}
 
-	unameEls := headerEl.MustElements("span > div > a[href^='/'] span, span > a[href='#'] span")
+	unameEls := headerEl.MustElements(`span > div > a[href^="/"]:not([href^="/reels/"]):not([href^="/explore/"]) span:not(:has(>*)), span > a[href="#"] span`)
 	meta.IsMultipleUser = len(unameEls) > 1
 	if !unameEls.Empty() {
 		meta.Username, err = unameEls.First().Text()
