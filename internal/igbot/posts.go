@@ -62,6 +62,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 
 	likedCnt := 0
 	alreadyLikedCnt := 0
+	notFollowedCnt := 0
 	article := p.MustElement("article:not([data-index])")
 	for i := range f.MaxScrollPosts {
 		if i > 0 {
@@ -129,6 +130,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 
 		// Handling like and limit.
 		if meta.Followed {
+			notFollowedCnt = 0
 			if meta.Liked {
 				alreadyLikedCnt++
 			} else {
@@ -140,13 +142,15 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 				likedCnt++
 				slog.Debug("Liked")
 			}
+		} else {
+			notFollowedCnt++
 		}
 
 		if likedCnt > f.MaxLikes {
 			slog.Info("Stopped", slog.String("reason", "Reached maximum likes"))
 			break
 		}
-		if alreadyLikedCnt >= f.MaxContinuedLikes {
+		if alreadyLikedCnt >= f.MaxContinuedLikes || notFollowedCnt >= f.MaxContinuedLikes {
 			slog.Info("Stopped", slog.String("reason", "It's likely that there is no more new post"))
 			break
 		}
