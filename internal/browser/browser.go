@@ -23,6 +23,8 @@ type Flags struct {
 	UserMode bool
 	Leakless bool
 	Stealth  bool
+	Trace    bool
+	Devtool  bool
 }
 
 func NewHeadlessFlags() Flags {
@@ -38,6 +40,8 @@ func BindCmdFlags(cmd *cobra.Command, flags *Flags) {
 	cmd.Flags().BoolVar(&flags.UserMode, "usermode", flags.UserMode, "enable usermode")
 	cmd.Flags().BoolVar(&flags.Leakless, "leakless", flags.Leakless, "enable leakless")
 	cmd.Flags().BoolVar(&flags.Stealth, "stealth", flags.Stealth, "enable stealth mode")
+	cmd.Flags().BoolVar(&flags.Trace, "trace", flags.Trace, "enable browser trace log")
+	cmd.Flags().BoolVar(&flags.Devtool, "devtool", flags.Devtool, "open browser with devtool")
 
 	cmd.Flags().StringVar(&flags.Profile, "profile", flags.Profile, "select profile to use")
 	cmd.Flags().StringSliceVar(&flags.XVFB, "xvfb", flags.XVFB, "enable XVFB mode")
@@ -56,15 +60,17 @@ func Execute(f Flags, handler func(page *Page) error) error {
 
 func NewPage(f Flags) (*Page, error) {
 	l := lo.Ternary(f.UserMode, launcher.NewUserMode(), launcher.New())
-	isXVFBEnabled := len(f.XVFB) > 0 && f.XVFB[0] != "false"
-	if isXVFBEnabled {
+
+	if isXVFBEnabled := len(f.XVFB) > 0 && f.XVFB[0] != "false"; isXVFBEnabled {
 		f.Headless = false
 		if f.XVFB[0] == "true" {
 			f.XVFB = []string{"-a"}
 		}
 		l = l.XVFB(f.XVFB...)
 	}
+
 	l = l.UserDataDir(filepath.Join(config.ProfilesDirectory, lo.Ternary(f.Profile == "", config.DefaultProfile, f.Profile))).
+		Devtools(f.Devtool).
 		Leakless(f.Leakless).
 		Headless(f.Headless)
 	l.Set("disable-blink-features", "AutomationControlled")
@@ -75,7 +81,11 @@ func NewPage(f Flags) (*Page, error) {
 		return nil, err
 	}
 
-	b := rod.New().ControlURL(u).NoDefaultDevice()
+	b := rod.New().
+		NoDefaultDevice().
+		SlowMotion(150 * time.Millisecond).
+		Trace(f.Trace).
+		ControlURL(u)
 	if err := b.Connect(); err != nil {
 		defer l.Kill()
 		return nil, err
@@ -125,18 +135,26 @@ func (p *Page) Close() {
 // RecoverWithScreenShot catch panic and save a screenshot.
 func (p *Page) RecoverWithScreenShot() {
 	if r := recover(); r != nil {
-		defer fmt.Printf("Stack trace:\n%s", debug.Stack())
-
-		screenshot := filepath.Join(config.ErrorScreenshotsDirectory, time.Now().Format("2006-01-02-150405_panic.png"))
-		p.MustScreenshot(screenshot)
-		defer func() {
-			if sr := recover(); sr != nil {
-				slog.Error("Error",
-					slog.Any("err", r),
-					slog.String("screenshot", "error"),
-					slog.Any("screenshotErr", sr))
-			}
-		}()
+		fmt.Printf("Stack trace:\n%s", debug.Stack())
+		screenshot, err := p.MustErrorScreenshot("panic")
+		if err != nil {
+			screenshot = "err: " + err.Error()
+		}
 		slog.Error("Error", slog.Any("err", r), slog.String("screenshot", screenshot))
 	}
+}
+
+func (p *Page) MustErrorScreenshot(tag string) (filename string, err error) {
+	filename = time.Now().Format(fmt.Sprintf("2006-01-02-150405_%s.png", tag))
+	defer func() {
+		if sr := recover(); sr != nil {
+			slog.Error("Error screenshot",
+				slog.Any("err", sr),
+				slog.String("screenshot", filename))
+			err = sr.(error)
+		}
+	}()
+	screenshot := filepath.Join(config.ErrorScreenshotsDirectory, filename)
+	p.MustScreenshot(screenshot)
+	return filename, nil
 }
