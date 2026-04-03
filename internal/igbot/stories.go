@@ -1,6 +1,7 @@
 package igbot
 
 import (
+	"fmt"
 	"github.com/go-rod/rod"
 	"github.com/mawngo/go-errors"
 	"github.com/mawngo/go-try/v2"
@@ -59,11 +60,12 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 				break
 			}
 			nextBtn.MustClick()
-			time.Sleep(1*time.Second + 500*time.Millisecond + time.Duration(rand.Intn(500))*time.Millisecond)
+			time.Sleep(1*time.Second + time.Duration(rand.Intn(500))*time.Millisecond)
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
-		article := container.Timeout(f.ElementTimeout).MustElement(storyArticleSelector)
+		article := container.Timeout(f.ElementTimeout).MustElement(storyArticleSelector).MustWaitStable()
+		article.MustEval(fmt.Sprintf(`() => this.setAttribute('data-index', '%d')`, i))
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
 			// Skip all story, go straight to the next article.
@@ -91,6 +93,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			// There is no like btn, it is pointless to keep scrolling this story.
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "no like button"))
 			nextBtn, _ = article.Next()
+			_, _ = p.MustErrorScreenshot("nolike_" + meta.Username)
 			continue
 		}
 
@@ -149,11 +152,16 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 			el.MustClick()
 
 			c, err := p.Timeout(loadTimeout).Element(storyContainerSelector)
+			if err == nil {
+				err = c.WaitStable(300 * time.Millisecond)
+			}
+
 			if err != nil {
 				// Close the story view if possible.
 				if closeBtn, err := el.Element(`section svg[aria-label="Close"]`); err == nil {
 					closeBtn.MustClick()
 				}
+				return nil, err
 			}
 			return c, nil
 		}, config.ElementRetryOpt)
@@ -171,13 +179,17 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		}
 
 		// Must have a like button to make sure this is an actual story.
-		article := container.Timeout(2 * time.Second).MustElement(storyArticleSelector)
-		if _, err := article.Element(storyLikeBtnSelector); err != nil {
+		container.Timeout(2 * time.Second).MustElement(storyArticleSelector).MustWaitStable()
+		if _, err := container.Timeout(2 * time.Second).Element(storyLikeBtnSelector); err != nil {
 			uname := "nil"
 			if unameEl, err := container.Element(storyUsernameSelector); err == nil {
 				uname = unameEl.MustText()
 			}
-			slog.Debug("Next", slog.String("reason", "no Like button"), slog.String("u", uname))
+			slog.Debug("Next",
+				slog.String("reason", "no Like button"),
+				slog.String("u", uname),
+				slog.Any("err", err))
+			_, _ = p.MustErrorScreenshot("nolike_container_" + uname)
 			closeBtn.MustClick()
 			continue
 		}
@@ -216,6 +228,7 @@ func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error
 			return meta, errors.Newf("like icon element missing aria-label attribute")
 		}
 		meta.Liked = *label != "Like"
+		meta.LikeBtn = meta.LikeBtn.CancelTimeout()
 	}
 	return meta, nil
 }
