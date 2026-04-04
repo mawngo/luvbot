@@ -34,7 +34,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	}
 
 	slog.Info("Waiting for first story...")
-	container := openStories(p, f.FistLoadTimeout, f.debug)
+	container := openStories(p, f.FistLoadTimeout)
 	if container == nil {
 		slog.Info("Stopped", slog.String("reason", "empty stories"))
 		return 0, nil
@@ -133,7 +133,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	return likedCnt, nil
 }
 
-func openStories(p *browser.Page, loadTimeout time.Duration, debug bool) *rod.Element {
+func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 	p.Timeout(loadTimeout).MustElement(storyTrayStorySelector).MustScrollIntoView()
 
 	for i := range 1000 {
@@ -178,23 +178,8 @@ func openStories(p *browser.Page, loadTimeout time.Duration, debug bool) *rod.El
 			continue
 		}
 
-		// Must have a like button to make sure this is an actual story.
+		// Wait for the article to be fully loaded.
 		container.Timeout(2 * time.Second).MustElement(storyArticleSelector).MustWaitStable()
-		if _, err := container.Timeout(2 * time.Second).Element(storyLikeBtnSelector); err != nil {
-			uname := "nil"
-			if unameEl, err := container.Element(storyUsernameSelector); err == nil {
-				uname = unameEl.MustText()
-			}
-			slog.Debug("Next",
-				slog.String("reason", "no Like button"),
-				slog.String("u", uname),
-				slog.Any("err", err))
-			if debug {
-				_, _ = p.MustErrorScreenshot("nolike_container_" + uname)
-			}
-			closeBtn.MustClick()
-			continue
-		}
 		break
 	}
 	return p.MustElement(storyContainerSelector)
