@@ -20,6 +20,7 @@ const (
 
 	storyCloseBtnSelector = `svg[aria-label="Close"]`
 	storyLikeBtnSelector  = `svg[aria-label$="ike"]`
+	storyPauseBtnSelector = `svg[aria-label$="Pause"]`
 )
 
 // LikeStories Open IG, open story view and like all likable stories in the view.
@@ -186,6 +187,11 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 }
 
 func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error) {
+	// Pause the story if it is playing.
+	if pause, err := container.Timeout(1 * time.Second).Element(storyPauseBtnSelector); err == nil {
+		pause.CancelTimeout().MustClick()
+	}
+
 	unameEl, err := container.Element(storyUsernameSelector)
 	if err != nil {
 		return meta, errors.Newf("username element not found")
