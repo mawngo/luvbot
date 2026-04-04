@@ -1,6 +1,7 @@
 package igbot
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-rod/rod"
 	"github.com/mawngo/go-errors"
@@ -43,13 +44,22 @@ type LikePostFlags struct {
 
 	FistLoadTimeout time.Duration
 	ElementTimeout  time.Duration
+	debug           bool
+}
+
+func prepareFlag(f LikePostFlags) LikePostFlags {
+	if f.EarlyStop {
+		f.MaxContinuedLikes = 3
+	}
+	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
+		f.debug = true
+	}
+	return f
 }
 
 // LikePosts Open IG and like all posts in the feed.
 func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
-	if f.EarlyStop {
-		f.MaxContinuedLikes = 3
-	}
+	f = prepareFlag(f)
 
 	if info := p.MustInfo(); info.URL != HomePageURL {
 		p.MustNavigate(HomePageURL)

@@ -25,9 +25,7 @@ const (
 // LikeStories Open IG, open story view and like all likable stories in the view.
 // This function will close the story view after completed.
 func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
-	if f.EarlyStop {
-		f.MaxContinuedLikes = 3
-	}
+	f = prepareFlag(f)
 
 	if info := p.MustInfo(); info.URL != HomePageURL {
 		p.MustNavigate(HomePageURL)
@@ -36,7 +34,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	}
 
 	slog.Info("Waiting for first story...")
-	container := openStories(p, f.FistLoadTimeout)
+	container := openStories(p, f.FistLoadTimeout, f.debug)
 	if container == nil {
 		slog.Info("Stopped", slog.String("reason", "empty stories"))
 		return 0, nil
@@ -93,7 +91,9 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			// There is no like btn, it is pointless to keep scrolling this story.
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "no like button"))
 			nextBtn, _ = article.Next()
-			_, _ = p.MustErrorScreenshot("nolike_" + meta.Username)
+			if f.debug {
+				_, _ = p.MustErrorScreenshot("nolike_" + meta.Username)
+			}
 			continue
 		}
 
@@ -133,7 +133,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	return likedCnt, nil
 }
 
-func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
+func openStories(p *browser.Page, loadTimeout time.Duration, debug bool) *rod.Element {
 	p.Timeout(loadTimeout).MustElement(storyTrayStorySelector).MustScrollIntoView()
 
 	for i := range 1000 {
@@ -189,7 +189,9 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 				slog.String("reason", "no Like button"),
 				slog.String("u", uname),
 				slog.Any("err", err))
-			_, _ = p.MustErrorScreenshot("nolike_container_" + uname)
+			if debug {
+				_, _ = p.MustErrorScreenshot("nolike_container_" + uname)
+			}
 			closeBtn.MustClick()
 			continue
 		}
