@@ -15,6 +15,8 @@ Require go 1.26+
 go install github.com/mawngo/luvbot@latest
 ```
 
+Alternately, check the [Releases](https://github.com/mawngo/luvbot/releases) page for pre-built binaries.
+
 ## Usage
 
 ### Account Setup
