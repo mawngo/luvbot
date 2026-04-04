@@ -27,7 +27,7 @@ func NewCmd() *cobra.Command {
 					return nil
 				}
 
-				igbot.WaitBetweenArticle()
+				igbot.WaitBetweenPosts()
 				postLikedCnt, err := igbot.LikePosts(p, f.LikePostFlags)
 				if err != nil {
 					slog.Error("Error liking posts", slog.Any("err", err))
