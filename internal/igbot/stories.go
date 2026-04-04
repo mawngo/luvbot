@@ -59,7 +59,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 				break
 			}
 			nextBtn.MustClick()
-			time.Sleep(1*time.Second + time.Duration(rand.Intn(500))*time.Millisecond)
+			waitBetweenStories()
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
@@ -137,11 +137,15 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	return likedCnt, nil
 }
 
+func waitBetweenStories() {
+	time.Sleep(1*time.Second + time.Duration(rand.Intn(500))*time.Millisecond)
+}
+
 func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 	p.Timeout(loadTimeout).MustElement(storyTrayStorySelector).MustScrollIntoView()
 
 	for i := range 1000 {
-		WaitBetweenArticle()
+		WaitBetweenPosts()
 		storiesEl := p.MustElements(storyTrayStorySelector)
 		if len(storiesEl) == 0 {
 			panic("Cannot detect story tray!")

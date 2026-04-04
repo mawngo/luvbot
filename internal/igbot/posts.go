@@ -77,7 +77,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 	for i := range f.MaxScrollPosts {
 		if i > 0 {
 			// Scroll to the next article.
-			WaitBetweenArticle()
+			WaitBetweenPosts()
 			var err error
 			article, err = try.GetWithOptions(func() (*rod.Element, error) {
 				next, err := article.Next()
@@ -171,7 +171,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 	return likedCnt, nil
 }
 
-func WaitBetweenArticle() {
+func WaitBetweenPosts() {
 	time.Sleep(2*time.Second + time.Duration(rand.Intn(500))*time.Millisecond)
 }
 
