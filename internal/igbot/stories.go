@@ -77,6 +77,9 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 		meta, err := extractStoryMetadata(article)
 		if err != nil {
 			slog.Error("Failed to extract story metadata", slog.Any("err", err))
+			if f.debug {
+				_, _ = p.MustErrorScreenshot("failed_metadata_" + meta.Username)
+			}
 			break
 		}
 

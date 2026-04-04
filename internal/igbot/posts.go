@@ -128,6 +128,9 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 		meta, err := extractPostMetadata(article)
 		if err != nil {
 			slog.Error("Failed to extract post metadata", slog.Any("err", err))
+			if f.debug {
+				_, _ = p.MustErrorScreenshot("failed_metadata_" + meta.Username)
+			}
 			break
 		}
 		slog.Info("Post",
