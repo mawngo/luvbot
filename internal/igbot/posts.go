@@ -68,7 +68,13 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 	}
 
 	slog.Info("Waiting for first post...")
-	p.Timeout(f.FistLoadTimeout).MustElement("article:not([data-index]) div > div:last-child svg[aria-label$='Save']")
+	if _, err := p.Timeout(f.FistLoadTimeout).Element("article:not([data-index]) div > div:last-child svg[aria-label$='Save']"); err != nil {
+		if !f.ExtendedScroll && isPostsAllCatchUp(p.MustElement("article:not([data-index])")) {
+			slog.Info("Stopped", slog.String("reason", "you're all caught up"))
+			return 0, nil
+		}
+		return 0, err
+	}
 
 	likedCnt := 0
 	alreadyLikedCnt := 0
@@ -106,7 +112,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
 			continue
 		}
-		if _, err := article.ElementX(`div//span[text()="You're all caught up"]`); err == nil {
+		if isPostsAllCatchUp(article) {
 			if f.ExtendedScroll {
 				continue
 			}
@@ -169,6 +175,16 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 		}
 	}
 	return likedCnt, nil
+}
+
+func isPostsAllCatchUp(el *rod.Element) bool {
+	if _, err := el.ElementX(`div//span[text()="You're all caught up"]`); err == nil {
+		return true
+	}
+	if _, err := el.ElementX(`div//span[text()="You've completely caught up"]`); err == nil {
+		return true
+	}
+	return false
 }
 
 func WaitBetweenPosts() {
