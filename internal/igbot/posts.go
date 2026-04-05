@@ -6,7 +6,6 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/mawngo/go-errors"
 	"github.com/mawngo/go-try/v2"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
 	"luvbot/internal/browser"
@@ -94,9 +93,12 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 			}, config.ElementRetryOpt)
 			if err != nil {
 				html, err := article.HTML()
+				if err != nil {
+					html = err.Error()
+				}
 				slog.Error("Cannot scroll to next article",
 					slog.Any("err", err),
-					slog.String("currentEl", lo.Ternary(err != nil, err.Error(), html)),
+					slog.String("currentEl", html),
 				)
 				break
 			}
