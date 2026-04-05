@@ -1,12 +1,10 @@
 package igbot
 
 import (
-	"context"
 	"fmt"
 	"github.com/go-rod/rod"
 	"github.com/mawngo/go-errors"
 	"github.com/mawngo/go-try/v2"
-	"github.com/samber/lo"
 	"github.com/spf13/cobra"
 	"log/slog"
 	"luvbot/internal/browser"
@@ -44,15 +42,11 @@ type LikePostFlags struct {
 
 	FistLoadTimeout time.Duration
 	ElementTimeout  time.Duration
-	debug           bool
 }
 
 func prepareFlag(f LikePostFlags) LikePostFlags {
 	if f.EarlyStop {
 		f.MaxContinuedLikes = 3
-	}
-	if slog.Default().Enabled(context.Background(), slog.LevelDebug) {
-		f.debug = true
 	}
 	return f
 }
@@ -94,9 +88,12 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 			}, config.ElementRetryOpt)
 			if err != nil {
 				html, err := article.HTML()
+				if err != nil {
+					html = err.Error()
+				}
 				slog.Error("Cannot scroll to next article",
 					slog.Any("err", err),
-					slog.String("currentEl", lo.Ternary(err != nil, err.Error(), html)),
+					slog.String("currentEl", html),
 				)
 				break
 			}
@@ -134,9 +131,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 		meta, err := extractPostMetadata(article)
 		if err != nil {
 			slog.Error("Failed to extract post metadata", slog.Any("err", err))
-			if f.debug {
-				_, _ = p.MustErrorScreenshot("failed_metadata_" + meta.Username)
-			}
+			p.MustErrorScreenshotForDebug("failed_metadata", meta.Username)
 			break
 		}
 		slog.Info("Post",

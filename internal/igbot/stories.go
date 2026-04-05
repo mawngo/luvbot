@@ -1,8 +1,8 @@
 package igbot
 
 import (
-	"fmt"
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/mawngo/go-errors"
 	"github.com/mawngo/go-try/v2"
 	"log/slog"
@@ -64,7 +64,6 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 		}
 
 		article := container.Timeout(f.ElementTimeout).MustElement(storyArticleSelector).MustWaitStable()
-		article.MustEval(fmt.Sprintf(`() => this.setAttribute('data-index', '%d')`, i))
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
 			// Skip all story, go straight to the next article.
@@ -77,9 +76,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 		meta, err := extractStoryMetadata(article)
 		if err != nil {
 			slog.Error("Failed to extract story metadata", slog.Any("err", err))
-			if f.debug {
-				_, _ = p.MustErrorScreenshot("failed_metadata_" + meta.Username)
-			}
+			p.MustErrorScreenshotForDebug("failed_metadata", meta.Username)
 			break
 		}
 
@@ -95,9 +92,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			// There is no like btn, it is pointless to keep scrolling this story.
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "no like button"))
 			nextBtn, _ = article.Next()
-			if f.debug {
-				_, _ = p.MustErrorScreenshot("nolike_" + meta.Username)
-			}
+			p.MustErrorScreenshotForDebug("nolike", meta.Username)
 			continue
 		}
 
@@ -111,7 +106,12 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			slog.Debug("Liking...")
 			alreadyLikedCnt = 0
 			if !f.SeenOnly {
-				meta.LikeBtn.Timeout(f.ElementTimeout).MustClick()
+				if err := meta.LikeBtn.Click(proto.InputMouseButtonLeft, 2); err != nil {
+					slog.Warn("Failed to click", slog.Any("err", err),
+						slog.String("u", meta.Username),
+						slog.String("btn", "like"))
+					p.MustErrorScreenshotForDebug("failed_like", meta.Username)
+				}
 			}
 			likedCnt++
 			slog.Debug("Liked")

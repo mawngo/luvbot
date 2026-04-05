@@ -12,6 +12,7 @@ import (
 	"luvbot/internal/config"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 	"time"
 )
 
@@ -157,4 +158,13 @@ func (p *Page) MustErrorScreenshot(tag string) (filename string, err error) {
 	screenshot := filepath.Join(config.ErrorScreenshotsDirectory, filename)
 	p.MustScreenshot(screenshot)
 	return filename, nil
+}
+
+func (p *Page) MustErrorScreenshotForDebug(tags ...string) {
+	if len(tags) == 0 {
+		tags = []string{"error"}
+	}
+	if config.IsDebugEnabled() {
+		_, _ = p.MustErrorScreenshot(strings.Join(tags, "_"))
+	}
 }
