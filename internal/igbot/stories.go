@@ -63,6 +63,10 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
+		// Pause the story if it is playing.
+		if pause, err := container.Timeout(1 * time.Second).Element(storyPauseBtnSelector); err == nil {
+			pause.CancelTimeout().MustClick()
+		}
 		article := container.Timeout(f.ElementTimeout).MustElement(storyArticleSelector).MustWaitStable()
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
@@ -187,21 +191,16 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		}
 
 		// Wait for the article to be fully loaded.
-		container.Timeout(2 * time.Second).MustElement(storyArticleSelector).MustWaitStable()
-		if pause, err := container.Timeout(1 * time.Second).Element(storyPauseBtnSelector); err == nil {
+		if pause, err := container.Timeout(2 * time.Second).Element(storyPauseBtnSelector); err == nil {
 			pause.CancelTimeout().MustClick()
 		}
+		container.Timeout(1 * time.Second).MustElement(storyArticleSelector).MustWaitStable()
 		break
 	}
 	return p.MustElement(storyContainerSelector)
 }
 
 func extractStoryMetadata(container *rod.Element) (meta storyMetadata, err error) {
-	// Pause the story if it is playing.
-	if pause, err := container.Timeout(1 * time.Second).Element(storyPauseBtnSelector); err == nil {
-		pause.CancelTimeout().MustClick()
-	}
-
 	unameEl, err := container.Element(storyUsernameSelector)
 	if err != nil {
 		return meta, errors.Newf("username element not found")
