@@ -3,6 +3,7 @@ package igbot
 import (
 	"fmt"
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/proto"
 	"github.com/mawngo/go-errors"
 	"github.com/mawngo/go-try/v2"
 	"github.com/spf13/cobra"
@@ -151,7 +152,12 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 				slog.Debug("Liking...")
 				alreadyLikedCnt = 0
 				if !f.SeenOnly {
-					meta.LikeBtn.Timeout(f.ElementTimeout).MustClick()
+					if err := meta.LikeBtn.Timeout(2*time.Second).Click(proto.InputMouseButtonLeft, 2); err != nil {
+						slog.Warn("Failed to click", slog.Any("err", err),
+							slog.String("u", meta.Username),
+							slog.String("btn", "like"))
+						p.MustErrorScreenshotForDebug("failed_like", meta.Username)
+					}
 				}
 				likedCnt++
 				slog.Debug("Liked")

@@ -110,7 +110,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 			slog.Debug("Liking...")
 			alreadyLikedCnt = 0
 			if !f.SeenOnly {
-				if err := meta.LikeBtn.Click(proto.InputMouseButtonLeft, 2); err != nil {
+				if err := meta.LikeBtn.Timeout(2*time.Second).Click(proto.InputMouseButtonLeft, 2); err != nil {
 					slog.Warn("Failed to click", slog.Any("err", err),
 						slog.String("u", meta.Username),
 						slog.String("btn", "like"))
@@ -194,7 +194,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		if pause, err := container.Timeout(2 * time.Second).Element(storyPauseBtnSelector); err == nil {
 			pause.CancelTimeout().MustClick()
 		}
-		container.Timeout(1 * time.Second).MustElement(storyArticleSelector).MustWaitStable()
+		container.Timeout(2 * time.Second).MustElement(storyArticleSelector).MustWaitStable()
 		break
 	}
 	return p.MustElement(storyContainerSelector)
