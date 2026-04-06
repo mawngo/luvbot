@@ -1,0 +1,10 @@
+[Unit]
+Description="Run luvbot periodically"
+
+[Timer]
+OnCalendar=*-*-* *:00:00
+Persistent=false
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,9 @@
+[Unit]
+Description="Run luvbot ig"
+
+[Service]
+# Change the user, the working directory and the binary.
+User=lana
+Environment="DISPLAY=:99"
+WorkingDirectory=/home/lana/Projects/luvbot
+ExecStart=/home/lana/Projects/luvbot/luvbot ig --debug --xvfb=true --leakless
