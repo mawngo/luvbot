@@ -64,7 +64,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 
 	slog.Info("Waiting for first post...")
 	if _, err := p.Timeout(f.FistLoadTimeout).Element("article:not([data-index]) div > div:last-child svg[aria-label$='Save']"); err != nil {
-		if !f.ExtendedScroll && isPostsAllCatchUp(p.Timeout(f.FistLoadTimeout).MustElement("article:not([data-index])")) {
+		if !f.ExtendedScroll && isPostsAllCatchUp(p.Timeout(f.FistLoadTimeout).MustElement("main")) {
 			slog.Info("Stopped", slog.String("reason", "you're all caught up"))
 			return 0, nil
 		}
