@@ -193,8 +193,9 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		// Wait for the article to be fully loaded.
 		if pause, err := container.Timeout(2 * time.Second).Element(storyPauseBtnSelector); err == nil {
 			pause.CancelTimeout().MustClick()
+		} else {
+			container.Timeout(2 * time.Second).MustElement(storyArticleSelector)
 		}
-		container.Timeout(2 * time.Second).MustElement(storyArticleSelector).MustWaitStable()
 		break
 	}
 	return p.MustElement(storyContainerSelector)
