@@ -69,4 +69,4 @@ Use "luvbot [command] --help" for more information about a command.
 
 - Using the bot could get your account banned.
 - Sometimes the bot may fail to detect stories/posts and freeze.
-- The automatic stories liking is not reliable (yet), it could miss some stories.
+- The automatic liking is not yet reliable, it may miss some stories and occasionally some posts.
