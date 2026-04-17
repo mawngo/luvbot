@@ -35,7 +35,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	}
 
 	slog.Info("Waiting for first story...")
-	container := openStories(p, f.FistLoadTimeout)
+	container := openStories(p, f.FistLoadTimeout, f.ElementTimeout)
 	if container == nil {
 		slog.Info("Stopped", slog.String("reason", "empty stories"))
 		return 0, nil
@@ -58,14 +58,14 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 				slog.Info("Stopped", slog.String("reason", "no more story next"))
 				break
 			}
-			nextBtn.MustClick()
+			nextBtn.Timeout(f.ElementTimeout).MustClick()
 			waitBetweenStories()
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
 		// Pause the story if it is playing.
 		if pause, err := container.Timeout(1 * time.Second).Element(storyPauseBtnSelector); err == nil {
-			pause.CancelTimeout().MustClick()
+			pause.CancelTimeout().Timeout(f.ElementTimeout).MustClick()
 		}
 		article := container.Timeout(f.ElementTimeout).MustElement(storyArticleSelector).MustWaitStable()
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
@@ -145,7 +145,7 @@ func waitBetweenStories() {
 	time.Sleep(1*time.Second + time.Duration(rand.Intn(500))*time.Millisecond)
 }
 
-func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
+func openStories(p *browser.Page, loadTimeout time.Duration, elementTimeout time.Duration) *rod.Element {
 	p.Timeout(loadTimeout).MustElement(storyTrayStorySelector).MustScrollIntoView()
 
 	for i := range 1000 {
@@ -161,9 +161,9 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		container, err := try.GetWithOptions(func() (*rod.Element, error) {
 			slog.Debug("Waiting for story container to open...")
 			el := storiesEl[i]
-			el.MustClick()
+			el.Timeout(elementTimeout).MustClick()
 
-			c, err := p.Timeout(loadTimeout).Element(storyContainerSelector)
+			c, err := p.Timeout(elementTimeout).Element(storyContainerSelector)
 			if err == nil {
 				err = c.WaitStable(300 * time.Millisecond)
 			}
@@ -171,7 +171,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 			if err != nil {
 				// Close the story view if possible.
 				if closeBtn, err := el.Element(`section svg[aria-label="Close"]`); err == nil {
-					closeBtn.MustClick()
+					closeBtn.Timeout(elementTimeout).MustClick()
 				}
 				return nil, err
 			}
@@ -186,13 +186,13 @@ func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 		// Exclude LIVE.
 		if _, err := container.ElementX(`div//span[text()="LIVE"]`); err == nil {
 			slog.Debug("Next", slog.String("reason", "LIVE story"))
-			closeBtn.MustClick()
+			closeBtn.Timeout(elementTimeout).MustClick()
 			continue
 		}
 
 		// Wait for the article to be fully loaded.
 		if pause, err := container.Timeout(2 * time.Second).Element(storyPauseBtnSelector); err == nil {
-			pause.CancelTimeout().MustClick()
+			pause.CancelTimeout().Timeout(elementTimeout).MustClick()
 		} else {
 			container.Timeout(2 * time.Second).MustElement(storyArticleSelector)
 		}
