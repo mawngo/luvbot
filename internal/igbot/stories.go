@@ -35,7 +35,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 	}
 
 	slog.Info("Waiting for first story...")
-	container := openStories(p, f.FistLoadTimeout, f.ElementTimeout)
+	container := openStories(p, f.FistLoadTimeout)
 	if container == nil {
 		slog.Info("Stopped", slog.String("reason", "empty stories"))
 		return 0, nil
@@ -58,16 +58,16 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 				slog.Info("Stopped", slog.String("reason", "no more story next"))
 				break
 			}
-			nextBtn.Timeout(f.ElementTimeout).MustClick()
+			nextBtn.Timeout(elementTimeout).MustClick()
 			waitBetweenStories()
 			nextBtn, _ = container.Element(`div > div > div > svg[aria-label="Next"]`)
 		}
 
 		// Pause the story if it is playing.
 		if pause, err := container.Timeout(1 * time.Second).Element(storyPauseBtnSelector); err == nil {
-			pause.CancelTimeout().Timeout(f.ElementTimeout).MustClick()
+			pause.CancelTimeout().Timeout(elementTimeout).MustClick()
 		}
-		article := container.Timeout(f.ElementTimeout).MustElement(storyArticleSelector).MustWaitStable()
+		article := container.Timeout(elementTimeout).MustElement(storyArticleSelector).MustWaitStable()
 		if _, err := article.ElementX("div//span[text()='Ad']"); err == nil {
 			slog.Info("Skip", slog.Int("i", i), slog.String("reason", "ad article"))
 			// Skip all story, go straight to the next article.
@@ -133,7 +133,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 
 	slog.Debug("Closing stories view...")
 	// Close the story view.
-	closeBtn, err := container.Timeout(f.ElementTimeout).Element(`svg[aria-label="Close"]`)
+	closeBtn, err := container.Timeout(elementTimeout).Element(`svg[aria-label="Close"]`)
 	if err != nil {
 		return likedCnt, errors.Wrapf(err, "cannot find close button on story view")
 	}
@@ -145,7 +145,7 @@ func waitBetweenStories() {
 	time.Sleep(1*time.Second + time.Duration(rand.Intn(600))*time.Millisecond)
 }
 
-func openStories(p *browser.Page, loadTimeout time.Duration, elementTimeout time.Duration) *rod.Element {
+func openStories(p *browser.Page, loadTimeout time.Duration) *rod.Element {
 	p.Timeout(loadTimeout).MustElement(storyTrayStorySelector).MustScrollIntoView()
 
 	for i := range 1000 {

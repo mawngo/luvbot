@@ -15,7 +15,10 @@ import (
 )
 
 const HomePageURL = "https://www.instagram.com/"
-const articleTimeout = 20 * time.Minute
+const (
+	articleTimeout = 20 * time.Minute
+	elementTimeout = 5 * time.Minute
+)
 
 func NewLikePostsFlags() LikePostFlags {
 	return LikePostFlags{
@@ -23,7 +26,6 @@ func NewLikePostsFlags() LikePostFlags {
 		MaxLikes:          1000,
 		MaxContinuedLikes: 10,
 		FistLoadTimeout:   3 * time.Minute,
-		ElementTimeout:    5 * time.Minute,
 	}
 }
 
@@ -41,9 +43,7 @@ type LikePostFlags struct {
 	MaxContinuedLikes int
 	EarlyStop         bool
 	SeenOnly          bool
-
-	FistLoadTimeout time.Duration
-	ElementTimeout  time.Duration
+	FistLoadTimeout   time.Duration
 }
 
 func prepareFlag(f LikePostFlags) LikePostFlags {
@@ -126,7 +126,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 
 		// Wait for the article to be fully loaded.
 		slog.Debug("Waiting for article to be fully loaded...")
-		p.Timeout(f.ElementTimeout).MustElement(fmt.Sprintf("article[data-index='%d'] div > div:last-child svg[aria-label$='Save']", i))
+		p.Timeout(elementTimeout).MustElement(fmt.Sprintf("article[data-index='%d'] div > div:last-child svg[aria-label$='Save']", i))
 		slog.Debug("Article is fully loaded")
 
 		slog.Debug("Parsing metadata...")
