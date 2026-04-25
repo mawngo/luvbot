@@ -15,13 +15,14 @@ import (
 )
 
 const HomePageURL = "https://www.instagram.com/"
+const articleTimeout = 20 * time.Minute
 
 func NewLikePostsFlags() LikePostFlags {
 	return LikePostFlags{
 		MaxScrollPosts:    5000,
 		MaxLikes:          1000,
 		MaxContinuedLikes: 10,
-		FistLoadTimeout:   1 * time.Minute,
+		FistLoadTimeout:   3 * time.Minute,
 		ElementTimeout:    5 * time.Minute,
 	}
 }
@@ -129,7 +130,7 @@ func LikePosts(p *browser.Page, f LikePostFlags) (int, error) {
 		slog.Debug("Article is fully loaded")
 
 		slog.Debug("Parsing metadata...")
-		meta, err := extractPostMetadata(article)
+		meta, err := extractPostMetadata(article.Timeout(articleTimeout))
 		if err != nil {
 			slog.Error("Failed to extract post metadata", slog.Any("err", err))
 			p.MustErrorScreenshotForDebug("failed_metadata", meta.Username)

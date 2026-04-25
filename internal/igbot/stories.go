@@ -77,7 +77,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 
 		slog.Debug("Parsing metadata...")
 		article = article.CancelTimeout()
-		meta, err := extractStoryMetadata(article)
+		meta, err := extractStoryMetadata(article.Timeout(articleTimeout))
 		if err != nil {
 			slog.Error("Failed to extract story metadata", slog.Any("err", err))
 			p.MustErrorScreenshotForDebug("failed_metadata", meta.Username)
@@ -142,7 +142,7 @@ func LikeStories(p *browser.Page, f LikePostFlags) (int, error) {
 }
 
 func waitBetweenStories() {
-	time.Sleep(1*time.Second + time.Duration(rand.Intn(500))*time.Millisecond)
+	time.Sleep(1*time.Second + time.Duration(rand.Intn(600))*time.Millisecond)
 }
 
 func openStories(p *browser.Page, loadTimeout time.Duration, elementTimeout time.Duration) *rod.Element {
@@ -150,7 +150,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration, elementTimeout time
 
 	for i := range 1000 {
 		WaitBetweenPosts()
-		storiesEl := p.MustElements(storyTrayStorySelector)
+		storiesEl := p.Timeout(elementTimeout).MustElements(storyTrayStorySelector)
 		if len(storiesEl) == 0 {
 			panic("Cannot detect story tray!")
 		}
@@ -160,7 +160,7 @@ func openStories(p *browser.Page, loadTimeout time.Duration, elementTimeout time
 
 		container, err := try.GetWithOptions(func() (*rod.Element, error) {
 			slog.Debug("Waiting for story container to open...")
-			el := storiesEl[i]
+			el := storiesEl[i].CancelTimeout()
 			el.Timeout(elementTimeout).MustClick()
 
 			c, err := p.Timeout(elementTimeout).Element(storyContainerSelector)
